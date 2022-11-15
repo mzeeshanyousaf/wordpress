@@ -1,0 +1,140 @@
+//for plugin
+/**
+* Plugin Name: Lister
+* Plugin URI: https://www.your-site.com/
+* Description: For custom post types.
+* Version: 0.1
+* Author: Mr ZED
+* Author URI: https://www.your-site.com/
+**/
+//Create listing CPT--------------------
+function listing_post_type() {
+    register_post_type('listing',
+        array(
+            'labels' => array(
+                'name' => __( 'listing' ),
+                'singular_name' => __( 'list' )
+            ),
+            'public' => true,
+
+            'show_in_rest' => true,
+        'supports' => array('title', 'editor', 'thumbnail'),
+        'has_archive' => true,
+        'rewrite'   => array( 'slug' => 'listing' ),
+            'menu_position' => 5,
+        'menu_icon' => 'dashicons-admin-post',
+        'taxonomies' => array('country', 'features') // this is IMPORTANT
+        )
+    );
+}
+add_action( 'init', 'listing_post_type' );
+//country features--------------------------
+//// Add country taxonomy--------------------
+function create_listing_taxonomy() {
+    register_taxonomy('country','listing',array(
+        'hierarchical' => false,
+        'labels' => array(
+            'name' => _x( 'country', 'taxonomy general name' ),
+            'singular_name' => _x( 'country', 'taxonomy singular name' ),
+            'menu_name' => __( 'country' ),
+            'all_items' => __( 'All country' ),
+            'edit_item' => __( 'Edit country' ),
+            'update_item' => __( 'Update country' ),
+            'add_new_item' => __( 'Add country' ),
+            'new_item_name' => __( 'New country' ),
+        ),
+    'show_ui' => true,
+    'show_in_rest' => true,
+    'show_admin_column' => true,
+    ));
+    register_taxonomy('features','listing',array(
+        'hierarchical' => false,
+        'labels' => array(
+            'name' => _x( 'features', 'taxonomy general name' ),
+            'singular_name' => _x( 'features', 'taxonomy singular name' ),
+            'menu_name' => __( 'features' ),
+            'all_items' => __( 'All features' ),
+            'edit_item' => __( 'Edit features' ),
+            'update_item' => __( 'Update features' ),
+            'add_new_item' => __( 'Add features' ),
+            'new_item_name' => __( 'New features' ),
+        ),
+    'show_ui' => true,
+    'show_in_rest' => true,
+    'show_admin_column' => true,
+    ));
+}
+add_action( 'init', 'create_listing_taxonomy', 0 );
+
+// create custm fields in custum post type---------------------------------------
+// three fields hcf_author ,hcf_choose , hcf_coments----------------------------
+
+function hcf_register_meta_boxes() {
+    add_meta_box( 'hcf-1', __( 'Custom Data', 'hcf' ), 'hcf_display_callback', 'listing' );
+}
+add_action( 'add_meta_boxes', 'hcf_register_meta_boxes' );
+
+/**
+ * Meta box display callback.
+ *
+ * @param WP_Post $post Current post object.
+ */
+function hcf_display_callback( $post ) {
+    include plugin_dir_path( __FILE__ ) . './form.php';
+}
+/**
+ * Save meta box content.
+ *
+ * @param int $post_id Post ID
+ */
+function hcf_save_meta_box( $post_id ) {
+    if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
+    if ( $parent_id = wp_is_post_revision( $post_id ) ) {
+        $post_id = $parent_id;
+    }
+    $fields = [
+        'hcf_author',
+        'hcf_choose',
+        'hcf_coments',
+    ];
+    foreach ( $fields as $field ) {
+        if ( array_key_exists( $field, $_POST ) ) {
+            update_post_meta( $post_id, $field, sanitize_text_field( $_POST[$field] ) );
+        }
+     }
+}
+add_action( 'save_post', 'hcf_save_meta_box' );
+//form.php for custom feilds seprate file-------------------
+
+<div class="hcf_box">
+    <style scoped>
+        .hcf_box{
+            display: grid;
+            grid-template-columns: max-content 1fr;
+            grid-row-gap: 10px;
+            grid-column-gap: 20px;
+        }
+        .hcf_field{
+            display: contents;
+        }
+    </style>
+    <p class="meta-options hcf_field">
+        <label for="hcf_author">Author</label>
+        <input id="hcf_author" type="text" name="hcf_author"
+          value="<?php echo esc_attr( get_post_meta( get_the_ID(), 'hcf_author', true ) ); ?>"
+        >
+    </p>
+    <p class="meta-options hcf_field">
+        <label for="hcf_choose">choose</label>
+        <select id="hcf_choose" name="hcf_choose"
+            value="<?php echo esc_attr( get_post_meta( get_the_ID(), 'hcf_choose', true ) ); ?>"
+        >
+         <option value="1">1</option>
+         <option value="2">2</option>
+       </select>
+    </p>
+    <p class="meta-options hcf_field">
+        <label for="hcf_coments">Comnets</label>
+        <textarea id="hcf_coments" name="hcf_coments"><?php echo esc_attr( get_post_meta( get_the_ID(), 'hcf_coments', true ) ); ?></textarea>
+    </p>
+</div>
